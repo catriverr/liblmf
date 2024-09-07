@@ -1,8 +1,8 @@
 #include <iostream>
 #include <string>
 
-#include "lmf.h"
-#include "src/lmf.cc"
+#include "../lmf.h"
+#include "lmf.cc"
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
         std::cout << data << "\n\n";
         return 0;
     };
+    std::cout << dat << ": file directory listing (" << file.data.files.size() << " file" << (file.data.files.size() > 1 ? "s" : "") << "):\n";
     for (const auto& f : file.data.files) {
         auto* d = f.hook.ptr;
         std::cout << '\t';
