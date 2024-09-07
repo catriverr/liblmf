@@ -5,6 +5,7 @@
 #include "lmf.cc"
 
 int main(int argc, char** argv) {
+    std::cout << "LMF: Lexed Multimedia Format (catriverr/liblmf)\nDeveloped by Mybutton Corporation. https://mybutton.org\n";
     if (argc < 2) {
         std::cout << "\tusage: " << argv[0] << " <file>.lmf [interleaf_file_name]\n";
         return 1;
@@ -35,9 +36,11 @@ int main(int argc, char** argv) {
     for (const auto& f : file.data.files) {
         auto* d = f.hook.ptr;
         std::cout << '\t';
+        std::string strs = d->content;
+        replace_all(strs, "\n", "\n\t\t");
         if (d->parent != nullptr) std::cout << d->parent->name << "/";
         std::cout << d->name + ":\n";
-        std::cout << d->content + "\n\n";
+        std::cout << "\t\t" << strs << "\n\n";
     };
     return 0;
 };
