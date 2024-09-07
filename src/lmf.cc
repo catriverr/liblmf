@@ -89,6 +89,7 @@ int LMF::File<INTERLEAFED>::read() {
         else if ( starts_with(text, "#DIRECTORY") ) {
             if ( text == "#DIRECTORY" ) throw std::invalid_argument("#DIRECTORY keyword requires an argument ( " + path + ":" + std::to_string(i) + ")");
             else if ( current_directory != nullptr ) throw std::invalid_argument("#DIRECTORY keyword cannot be recursively nested, close the directory with #END_DIRECTORY first. ( " + path + ":" + std::to_string(i) + ")");
+            else if ( current_file != nullptr ) throw std::invalid_argument("#DIRECTORY cannot create: close the current file first");
             replace_all(text, " ", "");
             std::string dir_name = text.substr(10); // 10 is #DIRECTORY keyword's length.
             current_directory = new LMF::InterleafDirectory({ .name = dir_name });
