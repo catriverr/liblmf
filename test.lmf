@@ -1,0 +1,17 @@
+pedantic=false;type=6;moveindex=2
+
+#FILE hello.txt
+Hello! this is an example .TXT file in the interleafed .LMF file format.
+#END_FILE
+
+#DIRECTORY secret
+
+#FILE password.txt
+my_example_password=holymolyguacamoleinacounterstrikemolly
+#END_FILE
+
+#FILE my_mothers_name.txt
+mother_name=Tiffany
+#END_FILE
+
+#END_DIRECTORY

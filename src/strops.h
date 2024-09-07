@@ -1,5 +1,6 @@
 #include "strings/replace_all.cc"
 #include "strings/contains.cc"
+#include "strings/includes.cc"
 
 #include "strings/split.cc"
 #include "strings/join.cc"
