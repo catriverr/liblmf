@@ -33,6 +33,7 @@ iCloud Password: i_am_bored_as_hell_man
 #END_FILE
 
 #END_DIRECTORY
-``` `(test.lmf)`
+```
+`(test.lmf)`
 
 running `lmf test.lmf` will list the directories and files within the file, you may also use `lmf test.lmf [file_inside_lmf]` to get the content of a single file. (For example `lmf test.lmf text_files/passwords.txt`)
