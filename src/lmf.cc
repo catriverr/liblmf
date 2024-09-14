@@ -132,7 +132,7 @@ int LMF::File<INTERLEAFED>::read() {
 
         else {
             if (current_file == nullptr) { i++; continue; };
-            current_file->hook.ptr->content += text;
+            current_file->hook.ptr->content += text + "\n";
             f_i++;
         };
 
