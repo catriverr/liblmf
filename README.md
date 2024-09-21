@@ -1,5 +1,7 @@
 # liblmf
 
+<img src="https://github.com/catriverr/liblmf/actions/workflows/c-cpp.yml/badge.svg">
+
 LMF is a file format for Interleafed and Multimedia files that can be encrypted. LMF contains headers that can specify which LMF type a file is, and  can execute them accordingly. LMF files can be scripts, interleaf files, binaries, configuration files, argument lists and so on.
 
 ## Installation
