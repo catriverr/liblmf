@@ -1,6 +1,14 @@
 #pragma once
 #include "lexer.h"
+#include <any>
+#include <cstddef>
+#include <cstdlib>
 #include <exception>
+#include <fstream>
+#include <istream>
+#include <map>
+#include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -146,5 +154,257 @@ int LMF::File<INTERLEAFED>::read() {
     return 0;
 };
 
+#include "./binary.cc"
+
+namespace LMF {
+    template<typename T>
+    class BinaryFile {
+      public:
+        T* data = nullptr; std::string path;
+        BinaryFile( std::string filepath ) : path(filepath) {
+            this->read(); // read the contents of the binary file
+        };
+
+        ~BinaryFile() {
+            free(this->data); // free the memory of the object
+        };
+
+        int read() {
+            if (!fs::exists(this->path) || fs::is_directory(this->path)) return 1;
+            T* __dat = read_binary<T>(this->path.c_str());
+            if (__dat == nullptr) return 2;
+            this->data = __dat;
+            return 0;
+        };
+        int rewrite() {
+            if (!fs::exists(this->path) || fs::is_directory(this->path)) return 1;
+            return write_binary(this->path.c_str(), this->data);
+        };
+      private:
+        bool loaded = false;
+    };
+}
+
+
+
+#include <execinfo.h>
+#include <cxxabi.h>
+
+/// returns the name of a variable's type
+template<typename T>
+std::string get_typename(const T& var) {
+    const char* mangled = typeid(var).name();
+    int status = 0;
+
+    std::unique_ptr<char, void(*)(void*)> demangled{
+        abi::__cxa_demangle(mangled, nullptr, nullptr, &status), std::free
+    };
+
+    if (status == 0 && demangled) {
+        return demangled.get();
+    } else {
+        return mangled;  // fallback to mangled name
+    }
+}
+
 
 #define LMF_SOURCE_INIT
+
+/// LIBLMF Multiple File Format
+/// (c) catriverr 2026
+
+namespace LMF {
+    template<typename T>
+    class MFF_Object {
+      public:
+        T object;
+        T* ref = nullptr;
+
+        MFF_Object(T& obj) : object(obj), ref(&obj) {
+        };
+
+
+        void serialize(std::ostream& out) {
+            // default behaviour
+            throw std::runtime_error("[liblmf:MFF_Object] unknown object type: " + get_typename( this->object ) + ". define LMF::MFF_Object<" + get_typename(this->object) + ">::serialize() and deserialize() functions to resolve this problem.");
+        };
+        void deserialize(std::istream& in) {
+            // default behaviour
+            throw std::runtime_error("[liblmf:MFF_Object] unknown object type: " + get_typename( this->object ) + ". define LMF::MFF_Object<" + get_typename(this->object) + ">::serialize() and deserialize() functions to resolve this problem.");            
+        };
+
+        T& base() { return this->object; };
+    };
+
+    template<typename T>
+        MFF_Object<T> create_mff_object(T obj) {
+            return MFF_Object<T>(obj);
+        };
+};
+
+#define LMF_TO_STREAM_WRITABLE( x ) reinterpret_cast<const char*>( &(x) )
+#define LMF_TO_STREAM_READABLE( x ) reinterpret_cast<char*>( &(x) )
+
+template<>
+void LMF::MFF_Object<int>::serialize(std::ostream& out) {
+    out.write( reinterpret_cast<const char*>( &(this->object) ), sizeof( this->object ) );
+};
+
+template<>
+void LMF::MFF_Object<int>::deserialize(std::istream& in ) {
+    in.read( LMF_TO_STREAM_READABLE( this->object ), sizeof( this->object ) );
+};
+
+template<>
+void LMF::MFF_Object<char>::serialize(std::ostream& out) {
+    out.write( reinterpret_cast<const char*>( &(this->object) ), sizeof( this->object ) );
+};
+
+template<>
+void LMF::MFF_Object<char>::deserialize(std::istream& in ) {
+    in.read( LMF_TO_STREAM_READABLE( this->object ), sizeof( this->object ) );
+};
+
+template<>
+void LMF::MFF_Object<bool>::serialize(std::ostream& out) {
+    out.write( reinterpret_cast<const char*>( &(this->object) ), sizeof( this->object ) );
+};
+
+template<>
+void LMF::MFF_Object<bool>::deserialize(std::istream& in ) {
+    in.read( reinterpret_cast<char*>( &this->object ), sizeof( this->object ) );
+};
+
+template<>
+void LMF::MFF_Object<std::string>::serialize(std::ostream& out) {
+    std::size_t str_length = ((this->object)).size();
+    out.write( LMF_TO_STREAM_WRITABLE( str_length ), sizeof( str_length ) );
+
+    out.write( this->object.c_str(), str_length );
+};
+
+template<>
+void LMF::MFF_Object<std::string>::deserialize(std::istream& in) {
+    std::size_t str_length;
+    in.read( LMF_TO_STREAM_READABLE(str_length), sizeof(str_length) );
+    this->object.resize( str_length );
+    in.read( &(this->object)[0], str_length );
+};
+
+template<>
+void LMF::MFF_Object<std::vector<std::string>>::serialize(std::ostream& out) {
+    std::size_t vec_length = this->object.size();
+    out.write( LMF_TO_STREAM_WRITABLE( vec_length ), sizeof(vec_length) );
+
+    for ( auto& str : this->object ) {
+        LMF::MFF_Object mff_str( str );
+        mff_str.serialize( out );
+    };
+};
+
+template<>
+void LMF::MFF_Object<std::vector<std::string>>::deserialize(std::istream& in) {
+    std::size_t vec_length;
+    in.read( LMF_TO_STREAM_READABLE(vec_length), sizeof(vec_length) );
+
+    this->object.resize( vec_length );
+
+    for ( auto& str : this->object ) {
+        LMF::MFF_Object<std::string> mff_str = create_mff_object( str );
+        mff_str.deserialize( in );
+        str = mff_str.object;
+    };
+};
+
+
+#define LMF_MFF_INIT
+
+namespace LMF {
+
+    struct Asset_Item_Base {
+        virtual ~Asset_Item_Base() = default;
+
+        virtual void write(std::ostream& out) const = 0;
+        virtual void read(std::istream& in) = 0;
+    };
+
+    template<typename T>
+    struct Asset_Item : public Asset_Item_Base {
+      private:
+        T* data_ref;
+      public:
+        explicit Asset_Item(T* object_ref) : data_ref( object_ref ) {};
+
+        void write( std::ostream& out ) const override {
+            LMF::MFF_Object<T> obj = create_mff_object( *this->data_ref );
+
+            obj.serialize( out );
+        };
+
+        void read( std::istream& in ) override {
+            LMF::MFF_Object<T> obj = create_mff_object( *this->data_ref );
+            obj.deserialize( in );
+            *this->data_ref = obj.base();
+        };
+    };
+
+    using MFF_Header = std::string;
+
+    class MFF_Asset {
+      public:
+        using Asset_Content = std::vector<std::unique_ptr<Asset_Item_Base>>;
+
+        Asset_Content content;
+        std::string file;
+
+        MFF_Asset( std::string filename ) : file( filename ) {};
+
+        void write_header( std::ofstream& out ) {
+            /// format:
+            /// [LINE_0] lmf[VERSION_IN_STR]
+            /// (header total length : "lmf"(3) + "x.x"(3) = 6)
+            std::string header = "lmf" + LMF::version;
+            out.write( header.c_str(), header.size() );
+        };
+
+        MFF_Header read_header( std::ifstream& in ) {
+            MFF_Header header;
+            header.resize(6);
+
+            in.read( &header[0], 6 );
+
+            return header;
+        };
+
+        template<typename T>
+        void add_item(T* item) {
+            Asset_Item<T> d_item( item );
+
+            this->content.push_back( std::make_unique< Asset_Item<T> >(d_item) );
+        };
+
+        void write() {
+            std::ofstream stream( file, std::ios::binary );
+            if (!stream.is_open()) throw std::runtime_error("[liblmf:MFF_Asset] open write stream to file " + file + " failed");
+
+            this->write_header( stream );
+
+            for ( auto& item : this->content ) {
+                item->write( stream );
+            };
+        };
+
+        void read() {
+            std::ifstream stream( file, std::ios::binary );
+            if (!stream.is_open()) throw std::runtime_error("[liblmf:MFF_Asset] open read stream to file " + file + " failed");
+
+            if ( this->read_header( stream ) != std::string("lmf" + LMF::version) )
+                throw std::runtime_error("invalid mff version " + this->read_header(stream) + ", expected lmf" + LMF::version);
+
+            for ( auto& item : this->content ) {
+                item->read( stream );
+            };
+        };
+
+    };
+};

@@ -10,8 +10,11 @@ namespace LMF {
     enum type {
         ENCRYPTABLE, INTERLEAFED, HEADER,
         SCRIPT, MARKDOWN, TOMFOOLERY,
-        CONFIG, SMALL_CONFIG, ARG_LIST
+        CONFIG, SMALL_CONFIG, ARG_LIST,
+        BINARY
     };
+
+    static std::string version = "2.0";
 
     class InterleafDirectory {
       public:
